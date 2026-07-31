@@ -1,16 +1,10 @@
-# Clawd 🟠
+# clawd-mascot 🟠
 
 A floating transparent animated desktop mascot for [Claude Code](https://claude.ai/code) on macOS.
 
 Clawd lives on your desktop and reacts to what Claude is doing in real time — bobbing when idle, spinning when running tools, bouncing when done.
 
-![Clawd floating over desktop](screenshot.png)
-
-## What it looks like
-
-- Fully transparent window — just the orange pixel mascot floating over everything
-- Reacts to Claude's state: idle → thinking → working → done/error
-- Draggable, always on top, close with the red dot
+> **macOS only** — uses PyObjC (native macOS framework)
 
 ## States
 
@@ -26,36 +20,39 @@ Clawd lives on your desktop and reacts to what Claude is doing in real time — 
 ## Requirements
 
 - macOS
-- Python 3 with PyObjC and Pillow:
-  ```
+- Python 3.8+
+- PyObjC and Pillow:
+  ```bash
   pip install pyobjc pillow
   ```
 
 ## Setup
 
-### 1. Add Claude Code hooks
+### 1. Clone the repo
 
-Add this to your `~/.claude/settings.json`:
+```bash
+git clone https://github.com/sciencestoked/clawd-mascot.git
+cd clawd-mascot
+chmod +x hook.sh
+```
+
+### 2. Add Claude Code hooks
+
+Add this to your `~/.claude/settings.json`, replacing `/path/to/clawd-mascot` with the actual path where you cloned the repo:
 
 ```json
 {
   "hooks": {
-    "SessionStart":       [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd/hook.sh" }] }],
-    "UserPromptSubmit":   [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd/hook.sh" }] }],
-    "PreToolUse":         [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd/hook.sh" }] }],
-    "PostToolUse":        [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd/hook.sh" }] }],
-    "PostToolUseFailure": [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd/hook.sh" }] }],
-    "PermissionRequest":  [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd/hook.sh" }] }],
-    "Stop":               [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd/hook.sh" }] }],
-    "SessionEnd":         [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd/hook.sh" }] }]
+    "SessionStart":       [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd-mascot/hook.sh" }] }],
+    "UserPromptSubmit":   [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd-mascot/hook.sh" }] }],
+    "PreToolUse":         [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd-mascot/hook.sh" }] }],
+    "PostToolUse":        [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd-mascot/hook.sh" }] }],
+    "PostToolUseFailure": [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd-mascot/hook.sh" }] }],
+    "PermissionRequest":  [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd-mascot/hook.sh" }] }],
+    "Stop":               [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd-mascot/hook.sh" }] }],
+    "SessionEnd":         [{ "matcher": "", "hooks": [{ "type": "command", "command": "/path/to/clawd-mascot/hook.sh" }] }]
   }
 }
-```
-
-### 2. Make hook executable
-
-```bash
-chmod +x hook.sh
 ```
 
 ### 3. Run Clawd
@@ -64,18 +61,20 @@ chmod +x hook.sh
 python3 clawd_widget.py
 ```
 
-## How it works
-
-- `hook.sh` — called by Claude Code on every lifecycle event, writes current state to `/tmp/clawd_state`
-- `clawd_widget.py` — PyObjC app that reads `/tmp/clawd_state` every frame and animates accordingly
-
-The mascot is rendered from the official Claude Code pixel art characters (`▐▛███▜▌`) upscaled with correct terminal aspect ratio.
+Clawd will appear in the center of your screen. Open a Claude Code session and watch him react.
 
 ## Controls
 
-- **Drag** the title bar area to move
+- **Drag** the title bar area (above the mascot) to move him anywhere
 - **Red dot** to close
-- **Ctrl+C** in terminal to quit
+- **Ctrl+C** in the terminal to quit
+
+## How it works
+
+- `hook.sh` — registered as a Claude Code lifecycle hook, writes the current state to `/tmp/clawd_state` on every event
+- `clawd_widget.py` — native macOS PyObjC window (fully transparent, always on top) that reads `/tmp/clawd_state` and animates the mascot accordingly
+
+The mascot pixel art is derived from the official Claude Code startup screen characters (`▐▛███▜▌`) upscaled with the correct terminal character aspect ratio.
 
 ## Credits
 

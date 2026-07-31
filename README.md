@@ -76,7 +76,7 @@ Clawd will appear in the center of your screen. Open a Claude Code session and w
 - `hook.sh` — registered as a Claude Code lifecycle hook, writes the current state to `/tmp/clawd_state` on every event
 - `clawd_widget.py` — native macOS PyObjC window (fully transparent, always on top) that reads `/tmp/clawd_state` and animates the mascot accordingly
 
-The mascot pixel art is derived from the official Claude Code startup screen characters (`▐▛███▜▌`) upscaled with the correct terminal character aspect ratio.
+The mascot pixel art is derived from the official Claude Code startup screen pixel art, upscaled with the correct terminal character aspect ratio using Python + Pillow.
 
 ## Credits
 

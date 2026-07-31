@@ -21,12 +21,9 @@ Clawd lives on your desktop and reacts to what Claude is doing in real time — 
 
 ## Requirements
 
-- macOS
-- Python 3.8+
-- PyObjC and Pillow:
-  ```bash
-  pip install pyobjc pillow
-  ```
+- macOS 12+
+- Python 3.8+ (use `python3 --version` to check)
+- [Claude Code](https://claude.ai/code) installed
 
 ## Setup
 
@@ -35,12 +32,27 @@ Clawd lives on your desktop and reacts to what Claude is doing in real time — 
 ```bash
 git clone https://github.com/sciencestoked/clawd-mascot.git
 cd clawd-mascot
+```
+
+### 2. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+> If `pip` isn't found, try `pip3`. If you're on a fresh Mac, install Python via [Homebrew](https://brew.sh): `brew install python`
+
+### 3. Make the hook executable
+
+```bash
 chmod +x hook.sh
 ```
 
-### 2. Add Claude Code hooks
+### 4. Add Claude Code hooks
 
-Add this to your `~/.claude/settings.json`, replacing `/path/to/clawd-mascot` with the actual path where you cloned the repo:
+Open `~/.claude/settings.json` in any editor. If it doesn't exist, create it.
+
+Add the `hooks` block below, replacing `/path/to/clawd-mascot` with the **absolute path** to where you cloned this repo (e.g. `/Users/yourname/clawd-mascot`):
 
 ```json
 {
@@ -57,24 +69,28 @@ Add this to your `~/.claude/settings.json`, replacing `/path/to/clawd-mascot` wi
 }
 ```
 
-### 3. Run Clawd
+> If your `settings.json` already has content, just add the `"hooks"` key alongside your existing keys — don't replace the whole file.
+
+**Restart Claude Code** after saving settings.json for the hooks to take effect.
+
+### 5. Run Clawd
 
 ```bash
 python3 clawd_widget.py
 ```
 
-Clawd will appear in the center of your screen. Open a Claude Code session and watch him react.
+Clawd will appear in the center of your screen. Start a Claude Code session and watch him react.
 
 ## Controls
 
-- **Drag** the title bar area (above the mascot) to move him anywhere
+- **Drag** the title bar area (above the mascot) to move him anywhere on screen
 - **Red dot** to close
 - **Ctrl+C** in the terminal to quit
 
 ## How it works
 
-- `hook.sh` — registered as a Claude Code lifecycle hook, writes the current state to `/tmp/clawd_state` on every event
-- `clawd_widget.py` — native macOS PyObjC window (fully transparent, always on top) that reads `/tmp/clawd_state` and animates the mascot accordingly
+- `hook.sh` — registered as a Claude Code lifecycle hook, writes the current state to `/tmp/clawd_state` on every event (thinking, tool running, done, etc.)
+- `clawd_widget.py` — native macOS PyObjC window (fully transparent, always on top) that polls `/tmp/clawd_state` and animates the mascot accordingly
 
 The mascot pixel art is derived from the official Claude Code startup screen pixel art, upscaled with the correct terminal character aspect ratio using Python + Pillow.
 

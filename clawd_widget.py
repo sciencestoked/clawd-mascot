@@ -233,14 +233,22 @@ def main():
     image_view.setImage_(first)
 
     print("Ctrl+C to quit.")
+    print("─" * 40)
     rl = NSRunLoop.currentRunLoop()
     idx = 0
     last = time.time()
+    last_state = None
 
     while running[0]:
         rl.runUntilDate_(NSDate.dateWithTimeIntervalSinceNow_(0.05))
         now = time.time()
         state = read_state()
+
+        if state != last_state:
+            print(f"[clawd] state: {last_state} → {state}")
+            last_state = state
+            idx = 0  # reset animation on state change
+
         delay = DELAYS.get(state, 0.1)
         if now - last >= delay:
             pool = ns_frames.get(state, ns_frames["idle"])

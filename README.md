@@ -4,6 +4,8 @@ A floating transparent animated desktop mascot for [Claude Code](https://claude.
 
 Clawd lives on your desktop and reacts to what Claude is doing in real time — bobbing when idle, spinning when running tools, bouncing when done.
 
+![Clawd demo](demo.gif)
+
 > **macOS only** — uses PyObjC (native macOS framework)
 
 ## States

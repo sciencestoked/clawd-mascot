@@ -204,7 +204,6 @@ class SettingsPanel(NSObject):
 class TrayApp(NSObject):
 
     def applicationDidFinishLaunching_(self, notification):
-        self._mascot = None  # set by run()
         self._settings = SettingsPanel.alloc().init()
 
         sb = NSStatusBar.systemStatusBar()
@@ -281,11 +280,17 @@ def run(mascot_process):
     app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
 
     delegate = TrayApp.alloc().init()
-    delegate._mascot = mascot_process
+    delegate._mascot = mascot_process  # set BEFORE app.run() / finishLaunching
     app.setDelegate_(delegate)
+    # Manually trigger launch so _mascot is set before the delegate fires
+    app.finishLaunching()
+    delegate.applicationDidFinishLaunching_(None)
 
     def _sigint(sig, frame):
-        mascot_process.stop()
+        try:
+            mascot_process.stop()
+        except Exception:
+            pass
         print("\nBye!")
         app.terminate_(None)
 

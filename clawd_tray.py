@@ -28,9 +28,12 @@ class MascotProcess:
     def start(self):
         if self.running:
             return
+        print(f"[tray] starting widget: {WIDGET_PATH}")
         self._proc = subprocess.Popen(
             [sys.executable, WIDGET_PATH],
+            cwd=os.path.dirname(WIDGET_PATH),
         )
+        print(f"[tray] widget PID: {self._proc.pid}")
 
     def stop(self):
         if not self.running:

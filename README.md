@@ -8,6 +8,8 @@ Clawd lives on your desktop and reacts to what Claude is doing in real time — 
 
 > **macOS only** — uses PyObjC (native macOS framework)
 
+> **Unofficial fan project. Not affiliated with or endorsed by Anthropic.**
+
 ## States
 
 | State | Animation |

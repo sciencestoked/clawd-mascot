@@ -235,10 +235,7 @@ class SettingsPanel(NSObject):
                 slider._field = field
                 slider._fmt = fmt
                 slider.setTarget_(self)
-                slider.setAction_(objc.selector(
-                    self._sliderMoved_,
-                    signature=b'v@:@'
-                ))
+                slider.setAction_("sliderMoved:")
 
                 self._controls[path] = (slider, field)
             y -= 2
@@ -250,10 +247,10 @@ class SettingsPanel(NSObject):
         save_btn.setTitle_("Save")
         save_btn.setBezelStyle_(NSBezelStyleRounded)
         save_btn.setTarget_(self)
-        save_btn.setAction_(objc.selector(self._save_, signature=b'v@:@'))
+        save_btn.setAction_("saveSettings:")
         self._panel.contentView().addSubview_(save_btn)
 
-    def _sliderMoved_(self, sender):
+    def sliderMoved_(self, sender):
         val = sender.doubleValue()
         field = sender._field
         fmt = sender._fmt
@@ -272,7 +269,7 @@ class SettingsPanel(NSObject):
             else:
                 ctrl.setState_(1 if val else 0)
 
-    def _save_(self, sender):
+    def saveSettings_(self, sender):
         cfg = load_config()
         for path, ctrl in self._controls.items():
             if isinstance(ctrl, tuple):
@@ -330,30 +327,22 @@ class TrayApp(NSObject):
         menu = NSMenu.alloc().init()
 
         self._start_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "Start Mascot",
-            objc.selector(self._startMascot_, signature=b'v@:@'),
-            "",
+            "Start Mascot", "startMascot:", "",
         )
         self._start_item.setTarget_(self)
 
         self._stop_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "Stop Mascot",
-            objc.selector(self._stopMascot_, signature=b'v@:@'),
-            "",
+            "Stop Mascot", "stopMascot:", "",
         )
         self._stop_item.setTarget_(self)
 
         settings_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "Settings\u2026",
-            objc.selector(self._openSettings_, signature=b'v@:@'),
-            ",",
+            "Settings\u2026", "openSettings:", ",",
         )
         settings_item.setTarget_(self)
 
         quit_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "Quit",
-            objc.selector(self._quit_, signature=b'v@:@'),
-            "q",
+            "Quit", "quitApp:", "q",
         )
         quit_item.setTarget_(self)
 
@@ -368,33 +357,29 @@ class TrayApp(NSObject):
 
         # Poll process status every 2s (widget can be right-click-closed)
         self._timer = NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
-            2.0,
-            self,
-            objc.selector(self._poll_, signature=b'v@:@'),
-            None,
-            True,
+            2.0, self, "pollProcess:", None, True,
         )
 
         # Auto-start
         self._mascot.start()
         self._refresh_ui()
 
-    def _startMascot_(self, sender):
+    def startMascot_(self, sender):
         self._mascot.start()
         self._refresh_ui()
 
-    def _stopMascot_(self, sender):
+    def stopMascot_(self, sender):
         self._mascot.stop()
         self._refresh_ui()
 
-    def _openSettings_(self, sender):
+    def openSettings_(self, sender):
         self._settings.show()
 
-    def _quit_(self, sender):
+    def quitApp_(self, sender):
         self._mascot.stop()
         NSApplication.sharedApplication().terminate_(None)
 
-    def _poll_(self, timer):
+    def pollProcess_(self, timer):
         self._refresh_ui()
 
     def _refresh_ui(self):

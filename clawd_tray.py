@@ -29,8 +29,9 @@ from AppKit import (
 )
 from Foundation import NSObject, NSTimer, NSRunLoop, NSDate
 
-CONFIG_FILE = os.path.expanduser("~/.config/claude-mascot/config.json")
-WIDGET_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "clawd_widget.py")
+CONFIG_FILE  = os.path.expanduser("~/.config/claude-mascot/config.json")
+WIDGET_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "clawd_widget.py")
+RELOAD_FILE  = "/tmp/clawd_reload"
 
 
 # ---------------------------------------------------------------------------
@@ -100,30 +101,42 @@ class MascotProcess:
 # Settings panel
 # ---------------------------------------------------------------------------
 
-# Each entry: (label, json_key_path_tuple, type, min, max, step)
+# Each entry: (label, tooltip, json_key_path_tuple, type, min, max)
 # type = "bool" | "float" | "int"
 SETTINGS_SPEC = [
-    ("Idle Breathing", None, "section", None, None, None),
-    ("  enabled",           ("animations", "idle_breathing", "enabled"),  "bool",  None, None, None),
-    ("  scale_min",         ("animations", "idle_breathing", "scale_min"), "float", 0.5, 1.5, 0.01),
-    ("  scale_max",         ("animations", "idle_breathing", "scale_max"), "float", 0.5, 1.5, 0.01),
+    ("Idle Breathing", "Mascot gently pulses in size while waiting", None, "section", None, None),
+    ("  On/Off",      "Enable or disable the breathing effect",
+     ("animations", "idle_breathing", "enabled"),  "bool",  None, None),
+    ("  Min size",    "How small the mascot shrinks at the bottom of the breath (1.0 = normal)",
+     ("animations", "idle_breathing", "scale_min"), "float", 0.8, 1.0),
+    ("  Max size",    "How large the mascot grows at the top of the breath (1.0 = normal)",
+     ("animations", "idle_breathing", "scale_max"), "float", 1.0, 1.3),
 
-    ("Squash & Stretch", None, "section", None, None, None),
-    ("  enabled",           ("animations", "squash_stretch", "enabled"),  "bool",  None, None, None),
-    ("  amount",            ("animations", "squash_stretch", "amount"),   "float", 0.0, 1.0, 0.01),
+    ("Squash & Stretch", "Mascot squishes on landing and stretches when jumping (tool success)", None, "section", None, None),
+    ("  On/Off",      "Enable or disable squash & stretch",
+     ("animations", "squash_stretch", "enabled"),  "bool",  None, None),
+    ("  Amount",      "How extreme the squash/stretch is (0 = none, 1 = very exaggerated)",
+     ("animations", "squash_stretch", "amount"),   "float", 0.0, 1.0),
 
-    ("Failure Shudder", None, "section", None, None, None),
-    ("  enabled",           ("animations", "failure_shudder", "enabled"),  "bool",  None, None, None),
-    ("  intensity",         ("animations", "failure_shudder", "intensity"), "int",  1, 30, 1),
-    ("  decay",             ("animations", "failure_shudder", "decay"),    "float", 0.1, 0.99, 0.01),
+    ("Failure Shudder", "Mascot shakes when a tool fails or errors out", None, "section", None, None),
+    ("  On/Off",      "Enable or disable the failure shake",
+     ("animations", "failure_shudder", "enabled"),  "bool",  None, None),
+    ("  Intensity",   "How far left/right the mascot shakes (pixels)",
+     ("animations", "failure_shudder", "intensity"), "int",  1, 30),
+    ("  Decay",       "How quickly the shake dies down (0.1 = fast stop, 0.99 = long rattle)",
+     ("animations", "failure_shudder", "decay"),    "float", 0.1, 0.99),
 
-    ("Permission Zoom Pulse", None, "section", None, None, None),
-    ("  enabled",           ("animations", "permission_zoom_pulse", "enabled"), "bool",  None, None, None),
-    ("  scale",             ("animations", "permission_zoom_pulse", "scale"),   "float", 1.0, 2.0, 0.01),
+    ("Permission Flash", "Mascot flashes and pulses when Claude asks for your permission", None, "section", None, None),
+    ("  On/Off",      "Enable or disable the permission zoom pulse",
+     ("animations", "permission_zoom_pulse", "enabled"), "bool",  None, None),
+    ("  Zoom",        "How big the mascot grows during the pulse (1.0 = no zoom, 1.5 = 50% bigger)",
+     ("animations", "permission_zoom_pulse", "scale"),   "float", 1.0, 2.0),
 
-    ("Success Particles", None, "section", None, None, None),
-    ("  enabled",           ("animations", "success_particles", "enabled"), "bool",  None, None, None),
-    ("  count",             ("animations", "success_particles", "count"),   "int",   1, 20, 1),
+    ("Success Particles", "Pixel confetti flies out when a tool succeeds", None, "section", None, None),
+    ("  On/Off",      "Enable or disable the particle effect",
+     ("animations", "success_particles", "enabled"), "bool",  None, None),
+    ("  Count",       "How many particles shoot out (more = more festive)",
+     ("animations", "success_particles", "count"),   "int",   1, 20),
 ]
 
 PANEL_W = 430
@@ -157,7 +170,7 @@ class SettingsPanel(NSObject):
 
         # Calculate total content height
         total_h = PAD_L
-        for label, path, typ, *_ in SETTINGS_SPEC:
+        for label, tooltip, path, typ, *_ in SETTINGS_SPEC:
             total_h += ROW_H + (6 if typ == "section" else 2)
         total_h += 50   # save button
 
@@ -188,13 +201,15 @@ class SettingsPanel(NSObject):
 
         # Build rows bottom-up (Cocoa coords: y=0 at bottom)
         y = total_h - PAD_L
-        for label, path, typ, mn, mx, step in SETTINGS_SPEC:
+        for label, tooltip, path, typ, mn, mx in SETTINGS_SPEC:
             y -= ROW_H
             if typ == "section":
                 y -= 6
                 lbl = NSTextField.labelWithString_(label)
                 lbl.setFrame_(NSMakeRect(PAD_L, y, PANEL_W - PAD_L * 2, ROW_H))
                 lbl.setFont_(NSFont.boldSystemFontOfSize_(12))
+                if tooltip:
+                    lbl.setToolTip_(tooltip)
                 content_view.addSubview_(lbl)
             elif typ == "bool":
                 cb = NSButton.alloc().initWithFrame_(
@@ -202,8 +217,12 @@ class SettingsPanel(NSObject):
                 )
                 cb.setButtonType_(AppKit.NSButtonTypeSwitch)
                 cb.setTitle_(label.strip())
+                if tooltip:
+                    cb.setToolTip_(tooltip)
                 state = get_nested(cfg, *path, default=True)
                 cb.setState_(1 if state else 0)
+                cb.setTarget_(self)
+                cb.setAction_("checkboxChanged:")
                 content_view.addSubview_(cb)
                 self._controls[path] = cb
             else:
@@ -211,6 +230,8 @@ class SettingsPanel(NSObject):
                 lbl = NSTextField.labelWithString_(label.strip())
                 lbl.setFrame_(NSMakeRect(PAD_L + 8, y + 4, 110, 18))
                 lbl.setFont_(NSFont.systemFontOfSize_(12))
+                if tooltip:
+                    lbl.setToolTip_(tooltip)
                 content_view.addSubview_(lbl)
 
                 # Slider
@@ -221,6 +242,8 @@ class SettingsPanel(NSObject):
                 slider.setMaxValue_(mx)
                 val = get_nested(cfg, *path, default=mn)
                 slider.setDoubleValue_(val)
+                if tooltip:
+                    slider.setToolTip_(tooltip)
                 content_view.addSubview_(slider)
 
                 # Value field
@@ -232,8 +255,8 @@ class SettingsPanel(NSObject):
                 field.setFont_(NSFont.monospacedDigitSystemFontOfSize_weight_(11, 0))
                 content_view.addSubview_(field)
 
-                # Wire slider -> field live update
-                self._slider_meta[id(slider)] = (field, fmt)
+                # Wire slider -> live update + write config
+                self._slider_meta[id(slider)] = (path, field, fmt)
                 slider.setTarget_(self)
                 slider.setAction_("sliderMoved:")
 
@@ -250,11 +273,29 @@ class SettingsPanel(NSObject):
         save_btn.setAction_("saveSettings:")
         self._panel.contentView().addSubview_(save_btn)
 
+    def _write_live(self, path, value):
+        """Write a single value to config and signal the widget to reload."""
+        cfg = load_config()
+        set_nested(cfg, list(path), value)
+        save_config(cfg)
+        open(RELOAD_FILE, "w").write("reload")
+
     def sliderMoved_(self, sender):
+        meta = self._slider_meta.get(id(sender))
+        if not meta:
+            return
+        path, field, fmt = meta
         val = sender.doubleValue()
-        field, fmt = self._slider_meta.get(id(sender), (None, ".2f"))
-        if field:
-            field.setStringValue_(f"{val:{fmt}}")
+        if fmt == ".0f":
+            val = int(round(val))
+        field.setStringValue_(f"{val:{fmt}}")
+        self._write_live(path, val)
+
+    def checkboxChanged_(self, sender):
+        for path, ctrl in self._controls.items():
+            if ctrl is sender:
+                self._write_live(path, bool(sender.state()))
+                return
 
     def _reload_values(self):
         cfg = load_config()
@@ -264,34 +305,19 @@ class SettingsPanel(NSObject):
                 continue
             if isinstance(ctrl, tuple):
                 slider, field = ctrl
-                _, fmt = self._slider_meta.get(id(slider), (None, ".2f"))
+                meta = self._slider_meta.get(id(slider))
+                fmt = meta[2] if meta else ".2f"
                 slider.setDoubleValue_(val)
                 field.setStringValue_(f"{val:{fmt}}")
             else:
                 ctrl.setState_(1 if val else 0)
 
     def saveSettings_(self, sender):
-        cfg = load_config()
-        for path, ctrl in self._controls.items():
-            if isinstance(ctrl, tuple):
-                slider, field = ctrl
-                _, fmt = self._slider_meta.get(id(slider), (None, ".2f"))
-                try:
-                    typed = float(field.stringValue())
-                    typed = max(slider.minValue(), min(slider.maxValue(), typed))
-                except ValueError:
-                    typed = slider.doubleValue()
-                if fmt == ".0f":
-                    typed = int(round(typed))
-                set_nested(cfg, list(path), typed)
-            else:
-                set_nested(cfg, list(path), bool(ctrl.state()))
-
-        save_config(cfg)
-
+        # Config is already up to date (written live on every change).
+        # Just confirm to the user.
         alert = NSAlert.alloc().init()
         alert.setMessageText_("Settings saved.")
-        alert.setInformativeText_("Changes take effect next time the mascot starts.")
+        alert.setInformativeText_("Changes are already applied live to the mascot.")
         alert.runModal()
 
 

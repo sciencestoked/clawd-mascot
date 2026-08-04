@@ -28,6 +28,7 @@ from Foundation import NSRunLoop, NSDate, NSObject, NSPoint
 from AppKit import NSView, NSEvent
 
 STATE_FILE  = "/tmp/clawd_state"
+RELOAD_FILE = "/tmp/clawd_reload"
 CONFIG_FILE = os.path.expanduser("~/.config/claude-mascot/config.json")
 
 def load_config():
@@ -358,6 +359,19 @@ def main():
     while running[0]:
         rl.runUntilDate_(NSDate.dateWithTimeIntervalSinceNow_(0.05))
         now = time.time()
+
+        # Reload frames if tray wrote a reload signal
+        if os.path.exists(RELOAD_FILE):
+            try:
+                os.remove(RELOAD_FILE)
+            except OSError:
+                pass
+            print("[clawd] reloading config...")
+            config = load_config()
+            raw_frames = generate_frames(config)
+            ns_frames = {k: [pil_to_nsimage(f) for f in v] for k, v in raw_frames.items()}
+            idx = 0
+            print("[clawd] reload done")
 
         if debug_mode:
             if now - debug_last >= DEBUG_DURATION:

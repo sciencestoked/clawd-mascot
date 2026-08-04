@@ -30,7 +30,6 @@ class MascotProcess:
             return
         self._proc = subprocess.Popen(
             [sys.executable, WIDGET_PATH],
-            start_new_session=True,
         )
 
     def stop(self):

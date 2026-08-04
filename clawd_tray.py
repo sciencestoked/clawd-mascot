@@ -360,6 +360,11 @@ class TrayApp(NSObject):
             2.0, self, "pollProcess:", None, True,
         )
 
+        # Wake runloop every 0.5s so Python SIGINT handler can fire
+        NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
+            0.5, self, "noop:", None, True,
+        )
+
         # Auto-start
         self._mascot.start()
         self._refresh_ui()
@@ -382,6 +387,9 @@ class TrayApp(NSObject):
     def pollProcess_(self, timer):
         self._refresh_ui()
 
+    def noop_(self, timer):
+        pass
+
     def _refresh_ui(self):
         running = self._mascot.running
         self._item.button().setImage_(_make_dot_image(running))
@@ -402,16 +410,15 @@ def main():
 
     delegate = TrayApp.alloc().init()
     app.setDelegate_(delegate)
-    app.finishLaunching()
-    delegate.applicationDidFinishLaunching_(None)
 
-    rl = NSRunLoop.currentRunLoop()
-    try:
-        while True:
-            rl.runUntilDate_(NSDate.dateWithTimeIntervalSinceNow_(0.1))
-    except KeyboardInterrupt:
+    def _sigint(sig, frame):
         delegate._mascot.stop()
         print("\nBye!")
+        app.terminate_(None)
+
+    signal.signal(signal.SIGINT, _sigint)
+
+    app.run()
 
 
 if __name__ == "__main__":

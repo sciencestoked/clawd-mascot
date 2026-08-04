@@ -397,15 +397,21 @@ class TrayApp(NSObject):
 # ---------------------------------------------------------------------------
 
 def main():
-    signal.signal(signal.SIGTERM, lambda *_: NSApplication.sharedApplication().terminate_(None))
-
     app = NSApplication.sharedApplication()
     app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
 
     delegate = TrayApp.alloc().init()
     app.setDelegate_(delegate)
+    app.finishLaunching()
+    delegate.applicationDidFinishLaunching_(None)
 
-    app.run()
+    rl = NSRunLoop.currentRunLoop()
+    try:
+        while True:
+            rl.runUntilDate_(NSDate.dateWithTimeIntervalSinceNow_(0.1))
+    except KeyboardInterrupt:
+        delegate._mascot.stop()
+        print("\nBye!")
 
 
 if __name__ == "__main__":

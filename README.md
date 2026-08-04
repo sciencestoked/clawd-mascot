@@ -75,22 +75,35 @@ Add the `hooks` block below, replacing `/path/to/clawd-mascot` with the **absolu
 
 ### 5. Run Clawd
 
+**Option A — menu bar tray (recommended)**
+
 ```bash
-python3 clawd_widget.py
+python3 clawd_tray.py
 ```
 
-Clawd will appear in the center of your screen. Start a Claude Code session and watch him react.
+An orange dot appears in your menu bar. Click it to start/stop the mascot or open Settings.
+
+**Option B — widget only**
+
+```bash
+python3 clawd_widget.py
+# or with debug mode to cycle through all animation states:
+python3 clawd_widget.py --debug
+```
 
 ## Controls
 
 - **Drag** the title bar area (above the mascot) to move him anywhere on screen
-- **Red dot** to close
-- **Ctrl+C** in the terminal to quit
+- **Right-click** the mascot to close it
+- **Menu bar dot** → Stop Mascot to hide him
+- **Menu bar dot** → Settings… to tune animations live
 
 ## How it works
 
 - `hook.sh` — registered as a Claude Code lifecycle hook, writes the current state to `/tmp/clawd_state` on every event (thinking, tool running, done, etc.)
 - `clawd_widget.py` — native macOS PyObjC window (fully transparent, always on top) that polls `/tmp/clawd_state` and animates the mascot accordingly
+- `clawd_tray.py` — menu bar tray app that launches the widget as a subprocess and provides a settings panel for `config.json`
+- `config.json` — animation toggles and numeric params (intensity, scale, etc.) — edit directly or use the Settings panel
 
 The mascot pixel art is derived from the official Claude Code startup screen pixel art, upscaled with the correct terminal character aspect ratio using Python + Pillow.
 

@@ -280,11 +280,8 @@ def run(mascot_process):
     app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
 
     delegate = TrayApp.alloc().init()
-    delegate._mascot = mascot_process  # set BEFORE app.run() / finishLaunching
+    delegate._mascot = mascot_process
     app.setDelegate_(delegate)
-    # Manually trigger launch so _mascot is set before the delegate fires
-    app.finishLaunching()
-    delegate.applicationDidFinishLaunching_(None)
 
     def _sigint(sig, frame):
         try:

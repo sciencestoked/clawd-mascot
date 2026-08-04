@@ -137,9 +137,10 @@ FIELD_W  = 52
 class SettingsPanel(NSObject):
 
     def init(self):
-        self = super().init()
+        self = objc.super(SettingsPanel, self).init()
         self._panel = None
-        self._controls = {}   # path_tuple -> (slider, field) or checkbox NSButton
+        self._controls = {}   # path_tuple -> (slider, field, fmt) or checkbox NSButton
+        self._slider_meta = {}  # slider id -> (field, fmt)
         return self
 
     def show(self):
@@ -147,8 +148,8 @@ class SettingsPanel(NSObject):
             self._build()
         else:
             self._reload_values()
-        self._panel.makeKeyAndOrderFront_(None)
         NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
+        self._panel.makeKeyAndOrderFront_(None)
 
     # ------------------------------------------------------------------
     def _build(self):
@@ -232,8 +233,7 @@ class SettingsPanel(NSObject):
                 content_view.addSubview_(field)
 
                 # Wire slider -> field live update
-                slider._field = field
-                slider._fmt = fmt
+                self._slider_meta[id(slider)] = (field, fmt)
                 slider.setTarget_(self)
                 slider.setAction_("sliderMoved:")
 
@@ -252,9 +252,9 @@ class SettingsPanel(NSObject):
 
     def sliderMoved_(self, sender):
         val = sender.doubleValue()
-        field = sender._field
-        fmt = sender._fmt
-        field.setStringValue_(f"{val:{fmt}}")
+        field, fmt = self._slider_meta.get(id(sender), (None, ".2f"))
+        if field:
+            field.setStringValue_(f"{val:{fmt}}")
 
     def _reload_values(self):
         cfg = load_config()
@@ -264,8 +264,9 @@ class SettingsPanel(NSObject):
                 continue
             if isinstance(ctrl, tuple):
                 slider, field = ctrl
+                _, fmt = self._slider_meta.get(id(slider), (None, ".2f"))
                 slider.setDoubleValue_(val)
-                field.setStringValue_(f"{val:{slider._fmt}}")
+                field.setStringValue_(f"{val:{fmt}}")
             else:
                 ctrl.setState_(1 if val else 0)
 
@@ -274,15 +275,13 @@ class SettingsPanel(NSObject):
         for path, ctrl in self._controls.items():
             if isinstance(ctrl, tuple):
                 slider, field = ctrl
-                # prefer typed field value if it differs
+                _, fmt = self._slider_meta.get(id(slider), (None, ".2f"))
                 try:
                     typed = float(field.stringValue())
-                    # clamp to slider range
                     typed = max(slider.minValue(), min(slider.maxValue(), typed))
                 except ValueError:
                     typed = slider.doubleValue()
-                # keep int for int fields
-                if slider._fmt == ".0f":
+                if fmt == ".0f":
                     typed = int(round(typed))
                 set_nested(cfg, list(path), typed)
             else:
@@ -370,17 +369,21 @@ class TrayApp(NSObject):
         self._refresh_ui()
 
     def startMascot_(self, sender):
+        print("[tray] startMascot clicked")
         self._mascot.start()
         self._refresh_ui()
 
     def stopMascot_(self, sender):
+        print("[tray] stopMascot clicked")
         self._mascot.stop()
         self._refresh_ui()
 
     def openSettings_(self, sender):
+        print("[tray] openSettings clicked")
         self._settings.show()
 
     def quitApp_(self, sender):
+        print("[tray] quit clicked")
         self._mascot.stop()
         NSApplication.sharedApplication().terminate_(None)
 

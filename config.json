@@ -1,0 +1,29 @@
+{
+  "animations": {
+    "idle_breathing": {
+      "enabled": true,
+      "scale_min": 1.0,
+      "scale_max": 1.06,
+      "speed": 1.0
+    },
+    "squash_stretch": {
+      "enabled": true,
+      "amount": 0.25
+    },
+    "failure_shudder": {
+      "enabled": true,
+      "intensity": 8,
+      "decay": 0.75
+    },
+    "permission_zoom_pulse": {
+      "enabled": true,
+      "scale": 1.12
+    },
+    "success_particles": {
+      "enabled": true,
+      "count": 6,
+      "color": [0, 220, 80]
+    }
+  },
+  "debug_duration": 1.5
+}

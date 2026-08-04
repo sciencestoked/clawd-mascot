@@ -5,6 +5,8 @@ Detects OS and delegates to the appropriate backend.
 """
 
 import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 debug_mode = "--debug" in sys.argv
 

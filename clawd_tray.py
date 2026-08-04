@@ -152,8 +152,10 @@ class SettingsPanel(NSObject):
     def init(self):
         self = objc.super(SettingsPanel, self).init()
         self._panel = None
-        self._controls = {}   # path_tuple -> (slider, field, fmt) or checkbox NSButton
-        self._slider_meta = {}  # slider id -> (field, fmt)
+        self._controls = {}
+        self._slider_meta = {}
+        self._snapshot = None   # config snapshot taken on open
+        self._saved = False     # did user hit Save?
         return self
 
     def show(self):
@@ -161,8 +163,18 @@ class SettingsPanel(NSObject):
             self._build()
         else:
             self._reload_values()
+        # Snapshot current config so we can revert on cancel
+        self._snapshot = load_config()
+        self._saved = False
         NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
         self._panel.makeKeyAndOrderFront_(None)
+
+    def windowWillClose_(self, notification):
+        if not self._saved and self._snapshot is not None:
+            # User closed without saving — restore snapshot
+            save_config(self._snapshot)
+            open(RELOAD_FILE, "w").write("reload")
+            print("[settings] cancelled — reverted to previous config")
 
     # ------------------------------------------------------------------
     def _build(self):
@@ -185,6 +197,7 @@ class SettingsPanel(NSObject):
         self._panel.setTitle_("Clawd Settings")
         self._panel.center()
         self._panel.setReleasedWhenClosed_(False)
+        self._panel.setDelegate_(self)
 
         # Scrollable content view
         scroll = NSScrollView.alloc().initWithFrame_(
@@ -313,12 +326,10 @@ class SettingsPanel(NSObject):
                 ctrl.setState_(1 if val else 0)
 
     def saveSettings_(self, sender):
-        # Config is already up to date (written live on every change).
-        # Just confirm to the user.
-        alert = NSAlert.alloc().init()
-        alert.setMessageText_("Settings saved.")
-        alert.setInformativeText_("Changes are already applied live to the mascot.")
-        alert.runModal()
+        self._saved = True
+        self._snapshot = load_config()  # update snapshot to current
+        self._panel.orderOut_(None)
+        print("[settings] saved")
 
 
 # ---------------------------------------------------------------------------
